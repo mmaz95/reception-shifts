@@ -776,6 +776,99 @@ input, select { font-family: inherit; }
 }
 
 /* ================================================
+   MOBILE LIST VIEW
+   ================================================ */
+.day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.day-list-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.day-list-card.uncovered {
+  border-left: 4px solid var(--danger);
+}
+
+.day-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.day-list-header:hover { background: var(--primary-light); }
+
+.day-list-header .day-info {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.day-list-header .day-date-sub {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-left: 8px;
+  font-weight: 400;
+}
+
+.day-list-header .coverage-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.day-list-body { padding: 4px 0; }
+
+.day-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.day-list-row:last-child { border-bottom: none; }
+
+.day-list-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+
+.day-list-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 70px;
+  color: var(--text);
+}
+
+.day-list-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.day-list-time {
+  font-size: 0.78rem;
+  color: var(--text-3);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ================================================
    RESPONSIVE
    ================================================ */
 @media (max-width: 768px) {

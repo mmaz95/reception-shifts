@@ -507,14 +507,17 @@ const Engine = {
 const UI = {
   currentView: 'weekly',
   editCtx: null, // { rId, dayIndex } della cella in modifica
+  weeklyViewMode: 'grid', // 'grid' | 'list'
 
   init() {
+    if (window.innerWidth <= 600) this.weeklyViewMode = 'list';
     this._bindNav();
     this._bindWeeklyControls();
     this._bindReceptionistForm();
     this._bindGenerateForm();
     this._bindModals();
     this._bindShiftSave();
+    this._updateToggleIcon();
     this.navigate('weekly');
   },
 
@@ -557,6 +560,19 @@ const UI = {
     });
     document.getElementById('export-pdf').addEventListener('click', () => Export.toPDF());
     document.getElementById('export-csv').addEventListener('click', () => Export.toCSV());
+    document.getElementById('toggle-view-mode').addEventListener('click', () => {
+      this.weeklyViewMode = this.weeklyViewMode === 'grid' ? 'list' : 'grid';
+      this._updateToggleIcon();
+      this.renderWeekly();
+    });
+  },
+
+  _updateToggleIcon() {
+    const btn = document.getElementById('toggle-view-mode');
+    if (!btn) return;
+    // ⊞ quando si è in lista (click → va a griglia), ☰ quando si è in griglia (click → va a lista)
+    btn.textContent = this.weeklyViewMode === 'grid' ? '☰' : '⊞';
+    btn.title = this.weeklyViewMode === 'grid' ? 'Vista lista (mobile)' : 'Vista griglia (tabella)';
   },
 
   _bindReceptionistForm() {
@@ -651,6 +667,14 @@ const UI = {
 
     const active = State.activeReceptionists();
 
+    if (this.weeklyViewMode === 'list') {
+      this._renderWeeklyList(schedule, active, wStart, grid);
+    } else {
+      this._renderWeeklyGrid(schedule, active, wStart, grid);
+    }
+  },
+
+  _renderWeeklyGrid(schedule, active, wStart, grid) {
     let html = '<div class="grid-wrapper"><table class="weekly-table"><thead><tr>';
     html += '<th class="corner-cell">Receptionist</th>';
     for (let d = 0; d < 7; d++) {
@@ -701,15 +725,67 @@ const UI = {
     html += '<td></td></tr></tfoot></table></div>';
     grid.innerHTML = html;
 
-    // Click su cella → modifica turno
     grid.querySelectorAll('.shift-cell').forEach(cell => {
       cell.addEventListener('click', () =>
         this._openShiftEditor(cell.dataset.rid, parseInt(cell.dataset.day, 10)));
     });
-    // Click su intestazione giorno → vista giornaliera
     grid.querySelectorAll('.day-header').forEach(th => {
       th.addEventListener('click', () =>
         this._openDailyView(parseInt(th.dataset.day, 10)));
+    });
+  },
+
+  _renderWeeklyList(schedule, active, wStart, grid) {
+    let html = '<div class="day-list">';
+
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(wStart);
+      date.setUTCDate(date.getUTCDate() + d);
+      const daySlots = active.map(r => (schedule[r.id] || [])[d]).filter(Boolean);
+      const gaps = Engine.computeGaps(daySlots);
+      const ok = gaps.length === 0;
+      const gapStr = gaps.map(g => `${minToTime(g.start)}–${minToTime(g.end)}`).join(', ');
+      const coverageTitle = ok ? 'Copertura completa' : `Buchi: ${gapStr}`;
+
+      html += `<div class="day-list-card${ok ? '' : ' uncovered'}">
+        <div class="day-list-header" data-day="${d}" title="${coverageTitle}">
+          <span class="day-info">${GIORNI[d]}<span class="day-date-sub">${fmtDate(date)}</span></span>
+          <span class="coverage-badge">${ok ? '✓' : '✗'}</span>
+        </div>
+        <div class="day-list-body">`;
+
+      for (const r of active) {
+        const slot = (schedule[r.id] || [])[d] || { type: 'RIPOSO', start: null, end: null };
+        const def = TURNI[slot.type] || TURNI.RIPOSO;
+        let timeStr = '';
+        if (slot.type !== 'RIPOSO' && slot.start !== null) {
+          timeStr = `${minToTime(slot.start)}–${minToTime(slot.end)}`;
+        }
+        // Calcola colori inline dal CSS custom property equivalente
+        const col = TIMELINE_COLORS[slot.type] || TIMELINE_COLORS.RIPOSO;
+        html += `<div class="day-list-row" data-rid="${r.id}" data-day="${d}">
+          <span class="day-list-dot" style="background:${r.color}"></span>
+          <span class="day-list-name">${this._esc(r.name)}</span>
+          <span class="day-list-badge" style="background:${col.bg};color:${col.text}">${def.label}</span>
+          ${timeStr ? `<span class="day-list-time">${timeStr}</span>` : ''}
+        </div>`;
+      }
+
+      html += `</div></div>`;
+    }
+
+    html += '</div>';
+    grid.innerHTML = html;
+
+    // Click su header giorno → vista giornaliera
+    grid.querySelectorAll('.day-list-header').forEach(hdr => {
+      hdr.addEventListener('click', () =>
+        this._openDailyView(parseInt(hdr.dataset.day, 10)));
+    });
+    // Click su riga turno → modifica turno
+    grid.querySelectorAll('.day-list-row').forEach(row => {
+      row.addEventListener('click', () =>
+        this._openShiftEditor(row.dataset.rid, parseInt(row.dataset.day, 10)));
     });
   },
 
