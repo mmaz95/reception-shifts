@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestione Turni Reception</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-title">
+        <span class="header-icon">🏨</span>
+        <h1>Gestione Turni Reception</h1>
+      </div>
+      <nav class="main-nav">
+        <button class="nav-btn active" data-view="weekly">Piano Settimanale</button>
+        <button class="nav-btn" data-view="receptionists">Receptionist</button>
+        <button class="nav-btn" data-view="generate">Genera Turni</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ===== VISTA PIANO SETTIMANALE ===== -->
+    <section id="view-weekly" class="view active">
+      <div class="week-controls">
+        <button id="prev-week" class="icon-btn" title="Settimana precedente">&#8592;</button>
+        <span id="week-label" class="week-label"></span>
+        <button id="next-week" class="icon-btn" title="Settimana successiva">&#8594;</button>
+        <div class="export-group">
+          <button id="export-csv" class="btn btn-secondary">&#128196; CSV</button>
+          <button id="export-pdf" class="btn btn-secondary">&#128209; PDF</button>
+        </div>
+      </div>
+      <div id="weekly-grid" class="weekly-grid"></div>
+    </section>
+
+    <!-- ===== VISTA RECEPTIONIST ===== -->
+    <section id="view-receptionists" class="view">
+      <div class="view-header">
+        <h2>Gestione Receptionist</h2>
+        <p class="view-sub">Minimo 3 receptionist attivi richiesti.</p>
+      </div>
+      <div id="receptionists-list" class="receptionists-list"></div>
+      <div class="add-form card">
+        <h3>Aggiungi Receptionist</h3>
+        <div class="form-row">
+          <input type="text" id="new-name" class="text-input" placeholder="Nome receptionist" maxlength="40">
+          <label class="color-label">
+            <span>Colore:</span>
+            <input type="color" id="new-color" value="#E91E63">
+          </label>
+          <button id="add-receptionist" class="btn btn-primary">+ Aggiungi</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== VISTA GENERA TURNI ===== -->
+    <section id="view-generate" class="view">
+      <div class="view-header">
+        <h2>Genera Turni</h2>
+        <p class="view-sub">Seleziona la modalità e premi il pulsante per generare il piano della settimana corrente.</p>
+      </div>
+
+      <div class="mode-toggle-group">
+        <button id="mode-auto" class="mode-btn active">&#9889; Automatico</button>
+        <button id="mode-guided" class="mode-btn">&#9881; Guidato</button>
+      </div>
+
+      <div id="auto-mode-info" class="card info-card">
+        <p>Il motore assegnerà automaticamente tutti i turni rispettando le regole di business:<br>
+           40h/settimana per persona, nessuna sovrapposizione dei giorni di riposo, copertura 07:00–22:00.</p>
+      </div>
+
+      <div id="guided-mode-form" class="hidden">
+        <div id="guided-form-content" class="card"></div>
+      </div>
+
+      <div class="generate-actions">
+        <button id="generate-btn" class="btn btn-primary btn-large">&#128197; Genera Settimana</button>
+        <div id="generate-error" class="alert alert-error hidden"></div>
+      </div>
+
+      <div class="danger-zone card">
+        <h3>&#9888; Zona pericolosa</h3>
+        <p>Questa operazione cancella tutti i dati salvati (receptionist e piani).</p>
+        <button id="reset-btn" class="btn btn-danger">&#128465; Reset completo</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== MODALE VISTA GIORNALIERA ===== -->
+  <div id="modal-daily" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box modal-wide">
+      <div class="modal-header">
+        <h2 id="daily-title"></h2>
+        <button class="modal-close" data-modal="modal-daily">&#10005;</button>
+      </div>
+      <div id="daily-timeline" class="timeline-container"></div>
+    </div>
+  </div>
+
+  <!-- ===== MODALE MODIFICA TURNO ===== -->
+  <div id="modal-shift" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="shift-editor-title"></h2>
+        <button class="modal-close" data-modal="modal-shift">&#10005;</button>
+      </div>
+      <div id="shift-editor-form"></div>
+      <div id="shift-warning" class="alert alert-warning hidden"></div>
+      <div class="modal-footer">
+        <button id="shift-save" class="btn btn-primary">&#10003; Salva</button>
+        <button class="modal-close btn btn-secondary" data-modal="modal-shift">Annulla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODALE CONFERMA ===== -->
+  <div id="modal-confirm" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box modal-small">
+      <div class="modal-header">
+        <h2>Conferma</h2>
+        <button class="modal-close" data-modal="modal-confirm">&#10005;</button>
+      </div>
+      <p id="confirm-message" class="confirm-msg"></p>
+      <div class="modal-footer">
+        <button id="confirm-ok" class="btn btn-danger">Conferma</button>
+        <button class="modal-close btn btn-secondary" data-modal="modal-confirm">Annulla</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
