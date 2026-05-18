@@ -155,7 +155,7 @@ function deepClone(obj) {
 }
 
 // ================================================================
-// STATE — gestione dati e localStorage
+// STATE — gestione dati e Firebase Realtime Database
 // ================================================================
 
 const State = {
@@ -163,33 +163,54 @@ const State = {
   weeks: {},
   currentWeek: null,
 
-  /** Carica dati da localStorage, con fallback ai default */
-  load() {
-    try {
-      const r = localStorage.getItem(STORAGE.receptionists);
-      this.receptionists = r ? JSON.parse(r) : deepClone(DEFAULT_RECEPTIONISTS);
-    } catch { this.receptionists = deepClone(DEFAULT_RECEPTIONISTS); }
-
-    try {
-      const w = localStorage.getItem(STORAGE.weeks);
-      this.weeks = w ? JSON.parse(w) : {};
-    } catch { this.weeks = {}; }
-
-    const cw = localStorage.getItem(STORAGE.currentWeek);
-    this.currentWeek = cw || weekKey(new Date());
+  async load() {
+    await this._migrateFromLocalStorage();
+    const snap = await window.db.ref('/').once('value');
+    const data = snap.val() || {};
+    this.receptionists = data.receptionists || deepClone(DEFAULT_RECEPTIONISTS);
+    this.weeks         = data.weeks         || {};
+    this.currentWeek   = data.currentWeek   || weekKey(new Date());
+    this._setupRealtimeListeners();
   },
 
-  /** Persiste tutti i dati */
+  _setupRealtimeListeners() {
+    window.db.ref('/').on('value', snap => {
+      const data = snap.val() || {};
+      this.receptionists = data.receptionists || deepClone(DEFAULT_RECEPTIONISTS);
+      this.weeks         = data.weeks         || {};
+      this.currentWeek   = data.currentWeek   || weekKey(new Date());
+      if (UI.currentView) UI._renderView(UI.currentView);
+    });
+  },
+
+  async _migrateFromLocalStorage() {
+    const fbSnap = await window.db.ref('/').once('value');
+    if (fbSnap.exists()) return;
+    const lsR  = localStorage.getItem(STORAGE.receptionists);
+    const lsW  = localStorage.getItem(STORAGE.weeks);
+    const lsCW = localStorage.getItem(STORAGE.currentWeek);
+    if (!lsR && !lsW) return;
+    const migrateData = {};
+    if (lsR)  migrateData.receptionists = JSON.parse(lsR);
+    if (lsW)  migrateData.weeks         = JSON.parse(lsW);
+    if (lsCW) migrateData.currentWeek   = lsCW;
+    await window.db.ref('/').set(migrateData);
+  },
+
   save() {
-    localStorage.setItem(STORAGE.receptionists, JSON.stringify(this.receptionists));
-    localStorage.setItem(STORAGE.weeks, JSON.stringify(this.weeks));
-    localStorage.setItem(STORAGE.currentWeek, this.currentWeek);
+    window.db.ref('/').set({
+      receptionists: this.receptionists,
+      weeks: this.weeks,
+      currentWeek: this.currentWeek
+    }).catch(err => console.error('[Firebase] Errore salvataggio:', err));
   },
 
-  /** Cancella tutto e ripristina i default */
-  reset() {
-    Object.values(STORAGE).forEach(k => localStorage.removeItem(k));
-    this.load();
+  async reset() {
+    await window.db.ref('/').remove();
+    this.receptionists = deepClone(DEFAULT_RECEPTIONISTS);
+    this.weeks = {};
+    this.currentWeek = weekKey(new Date());
+    this.save();
   },
 
   activeReceptionists() {
@@ -212,7 +233,6 @@ const State = {
     if (r) { Object.assign(r, changes); this.save(); }
   },
 
-  /** Disattiva un receptionist; ritorna false se siamo già al minimo */
   deactivateReceptionist(id) {
     if (this.activeReceptionists().length <= 3) return false;
     const r = this.findById(id);
@@ -606,9 +626,8 @@ const UI = {
     });
     document.getElementById('generate-btn').addEventListener('click', () => this._handleGenerate());
     document.getElementById('reset-btn').addEventListener('click', () => {
-      this._showConfirm('Sei sicuro di voler cancellare tutti i dati? Questa azione è irreversibile.', () => {
-        State.reset();
-        // Torna in auto mode
+      this._showConfirm('Sei sicuro di voler cancellare tutti i dati? Questa azione è irreversibile.', async () => {
+        await State.reset();
         document.getElementById('mode-auto').classList.add('active');
         document.getElementById('mode-guided').classList.remove('active');
         document.getElementById('auto-mode-info').classList.remove('hidden');
@@ -1393,7 +1412,18 @@ const Export = {
 // INIT
 // ================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  State.load();
+document.addEventListener('DOMContentLoaded', async () => {
+  const loadingEl = document.getElementById('loading-overlay');
+  if (loadingEl) loadingEl.classList.remove('hidden');
+  try {
+    await State.load();
+  } catch (err) {
+    console.error('[Firebase] Impossibile caricare i dati:', err);
+    State.receptionists = deepClone(DEFAULT_RECEPTIONISTS);
+    State.weeks = {};
+    State.currentWeek = weekKey(new Date());
+    alert('Connessione al database non riuscita. I dati potrebbero non essere sincronizzati.');
+  }
+  if (loadingEl) loadingEl.classList.add('hidden');
   UI.init();
 });

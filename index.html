@@ -7,8 +7,17 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
+
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-spinner">
+      <span>⏳</span>
+      <p>Caricamento dati in corso...</p>
+    </div>
+  </div>
 
   <header class="app-header">
     <div class="header-inner">
@@ -138,6 +147,22 @@
     </div>
   </div>
 
+  <script>
+    // ⚠️ SOSTITUISCI I VALORI CON QUELLI DEL TUO PROGETTO FIREBASE
+    // Vai su console.firebase.google.com → Impostazioni progetto → Le tue app → </>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCLIer6V4mMgrFDopY9sso4iBmqrhVnt48",
+      authDomain: "reception-turni.firebaseapp.com",
+      databaseURL: "https://reception-turni-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "reception-turni",
+      storageBucket: "reception-turni.firebasestorage.app",
+      messagingSenderId: "1030931423124",
+      appId: "1:1030931423124:web:2d3da394471b78168f3981"
+    };
+    firebase.initializeApp(firebaseConfig);
+    window.db = firebase.database();
+    window.db.ref('/').keepSynced(true);
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
