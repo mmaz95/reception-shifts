@@ -213,6 +213,11 @@ const State = {
     this.save();
   },
 
+  async resetWeeks() {
+    await window.db.ref('/weeks').remove();
+    this.weeks = {};
+  },
+
   activeReceptionists() {
     return this.receptionists.filter(r => r.active);
   },
@@ -626,8 +631,8 @@ const UI = {
     });
     document.getElementById('generate-btn').addEventListener('click', () => this._handleGenerate());
     document.getElementById('reset-btn').addEventListener('click', () => {
-      this._showConfirm('Sei sicuro di voler cancellare tutti i dati? Questa azione è irreversibile.', async () => {
-        await State.reset();
+      this._showConfirm('Sei sicuro di voler cancellare tutti i turni? I receptionist rimarranno invariati.', async () => {
+        await State.resetWeeks();
         document.getElementById('mode-auto').classList.add('active');
         document.getElementById('mode-guided').classList.remove('active');
         document.getElementById('auto-mode-info').classList.remove('hidden');
