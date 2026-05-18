@@ -767,6 +767,9 @@ input, select { font-family: inherit; }
 
 .confirm-msg { padding: 16px 20px; color: var(--text-2); line-height: 1.6; }
 
+.prompt-input-wrap { padding: 0 20px 16px; }
+.prompt-input { width: 100%; }
+
 .modal-footer {
   display: flex;
   gap: 10px;

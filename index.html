@@ -147,6 +147,38 @@
     </div>
   </div>
 
+  <!-- ===== MODALE ALERT ===== -->
+  <div id="modal-alert" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box modal-small">
+      <div class="modal-header">
+        <h2 id="alert-title">Attenzione</h2>
+        <button class="modal-close" data-modal="modal-alert">&#10005;</button>
+      </div>
+      <p id="alert-message" class="confirm-msg"></p>
+      <div class="modal-footer">
+        <button id="alert-ok" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODALE PROMPT ===== -->
+  <div id="modal-prompt" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box modal-small">
+      <div class="modal-header">
+        <h2 id="prompt-title">Rinomina</h2>
+        <button class="modal-close" data-modal="modal-prompt">&#10005;</button>
+      </div>
+      <p id="prompt-label" class="confirm-msg"></p>
+      <div class="prompt-input-wrap">
+        <input type="text" id="prompt-input" class="text-input prompt-input">
+      </div>
+      <div class="modal-footer">
+        <button id="prompt-ok" class="btn btn-primary">&#10003; Salva</button>
+        <button class="modal-close btn btn-secondary" data-modal="modal-prompt">Annulla</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ⚠️ SOSTITUISCI I VALORI CON QUELLI DEL TUO PROGETTO FIREBASE
     // Vai su console.firebase.google.com → Impostazioni progetto → Le tue app → </>

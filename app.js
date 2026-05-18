@@ -605,7 +605,7 @@ const UI = {
       const nameEl = document.getElementById('new-name');
       const colorEl = document.getElementById('new-color');
       const name = nameEl.value.trim();
-      if (!name) { alert('Inserisci un nome per il receptionist.'); return; }
+      if (!name) { this._showAlert('Inserisci un nome per il receptionist.'); return; }
       State.addReceptionist(name, colorEl.value);
       nameEl.value = '';
       this.renderReceptionists();
@@ -661,6 +661,7 @@ const UI = {
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') this._closeAllModals();
     });
+    document.getElementById('alert-ok').addEventListener('click', () => this._closeModal('modal-alert'));
   },
 
   _bindShiftSave() {
@@ -926,11 +927,10 @@ const UI = {
     list.querySelectorAll('.btn-rename').forEach(btn => {
       btn.addEventListener('click', () => {
         const r = State.findById(btn.dataset.id);
-        const nome = prompt('Nuovo nome:', r?.name || '');
-        if (nome && nome.trim()) {
-          State.updateReceptionist(btn.dataset.id, { name: nome.trim() });
+        this._showPrompt('Nuovo nome:', r?.name || '', val => {
+          State.updateReceptionist(btn.dataset.id, { name: val });
           this.renderReceptionists();
-        }
+        });
       });
     });
 
@@ -949,7 +949,7 @@ const UI = {
     list.querySelectorAll('.btn-deact').forEach(btn => {
       btn.addEventListener('click', () => {
         const ok = State.deactivateReceptionist(btn.dataset.id);
-        if (!ok) alert('Impossibile disattivare: devono esserci almeno 3 receptionist attivi.');
+        if (!ok) this._showAlert('Impossibile disattivare: devono esserci almeno 3 receptionist attivi.');
         else this.renderReceptionists();
       });
     });
@@ -1229,6 +1229,32 @@ const UI = {
     this._openModal('modal-confirm');
   },
 
+  _showAlert(msg, title = 'Attenzione') {
+    document.getElementById('alert-title').textContent = title;
+    document.getElementById('alert-message').textContent = msg;
+    this._openModal('modal-alert');
+  },
+
+  _showPrompt(label, defaultValue, onOk, title = 'Rinomina') {
+    document.getElementById('prompt-title').textContent = title;
+    document.getElementById('prompt-label').textContent = label;
+    const input = document.getElementById('prompt-input');
+    input.value = defaultValue || '';
+    this._openModal('modal-prompt');
+    setTimeout(() => input.focus(), 50);
+    const okBtn = document.getElementById('prompt-ok');
+    const newOkBtn = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+    const confirm = () => {
+      const val = document.getElementById('prompt-input').value.trim();
+      if (val) { this._closeModal('modal-prompt'); onOk(val); }
+    };
+    newOkBtn.addEventListener('click', confirm);
+    input.addEventListener('keydown', function handler(e) {
+      if (e.key === 'Enter') { confirm(); input.removeEventListener('keydown', handler); }
+    });
+  },
+
   // ── Helpers modali ────────────────────────────────────────────
 
   _openModal(id) {
@@ -1260,7 +1286,7 @@ const Export = {
 
   toCSV() {
     const schedule = State.currentSchedule();
-    if (!schedule) { alert('Nessun piano da esportare per questa settimana.'); return; }
+    if (!schedule) { UI._showAlert('Nessun piano da esportare per questa settimana.'); return; }
 
     const active = State.activeReceptionists();
     const wStart = weekStart(State.currentWeek);
@@ -1301,8 +1327,8 @@ const Export = {
 
   toPDF() {
     const schedule = State.currentSchedule();
-    if (!schedule) { alert('Nessun piano da esportare per questa settimana.'); return; }
-    if (!window.jspdf) { alert('Libreria jsPDF non disponibile. Verifica la connessione internet.'); return; }
+    if (!schedule) { UI._showAlert('Nessun piano da esportare per questa settimana.'); return; }
+    if (!window.jspdf) { UI._showAlert('Libreria jsPDF non disponibile. Verifica la connessione internet.'); return; }
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -1427,7 +1453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     State.receptionists = deepClone(DEFAULT_RECEPTIONISTS);
     State.weeks = {};
     State.currentWeek = weekKey(new Date());
-    alert('Connessione al database non riuscita. I dati potrebbero non essere sincronizzati.');
+    UI._showAlert('Connessione al database non riuscita. I dati potrebbero non essere sincronizzati.', 'Errore di connessione');
   }
   if (loadingEl) loadingEl.classList.add('hidden');
   UI.init();
